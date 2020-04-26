@@ -40,6 +40,7 @@ export const ProductPlanFormControl: React.FunctionComponent<Props> = ({
     /**
      * The list of all possible product plans, loading, or an error.
      */
+    const noPlanSelected = value === null // don't recompute observable below on every value change
     const plans =
         useObservable(
             useMemo(
@@ -47,14 +48,14 @@ export const ProductPlanFormControl: React.FunctionComponent<Props> = ({
                     _queryProductPlans().pipe(
                         tap(plans => {
                             // If no plan is selected, select the 1st plan when the plans have loaded.
-                            if (plans.length > 0 && value === null) {
+                            if (plans.length > 0 && noPlanSelected) {
                                 onChange(plans[0].billingPlanID)
                             }
                         }),
                         catchError(err => [asError(err)]),
                         startWith(LOADING)
                     ),
-                [_queryProductPlans, onChange, value]
+                [_queryProductPlans, onChange, noPlanSelected]
             )
         ) || LOADING
 
