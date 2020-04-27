@@ -8,12 +8,12 @@ import SourceRepositoryIcon from 'mdi-react/SourceRepositoryIcon'
 import TagIcon from 'mdi-react/TagIcon'
 import UserIcon from 'mdi-react/UserIcon'
 import React, { useState, useMemo, useCallback, useEffect } from 'react'
-import { Link } from 'react-router-dom'
 import { Observable } from 'rxjs'
 import { catchError, map } from 'rxjs/operators'
+import { Link } from 'react-router-dom'
 import { ActionItem } from '../../../shared/src/actions/ActionItem'
 import { ActionsContainer } from '../../../shared/src/actions/ActionsContainer'
-import { ContributableMenu } from '../../../shared/src/api/protocol'
+import { ContributableMenu, ContributableViewContainer } from '../../../shared/src/api/protocol'
 import { ActivationProps } from '../../../shared/src/components/activation/Activation'
 import { displayRepoName } from '../../../shared/src/components/RepoFileLink'
 import { ExtensionsControllerProps } from '../../../shared/src/extensions/controller'
@@ -39,6 +39,9 @@ import { ErrorAlert } from '../components/alerts'
 import { subYears, formatISO } from 'date-fns'
 import { pluralize } from '../../../shared/src/util/strings'
 import { useObservable } from '../../../shared/src/util/useObservable'
+import { isDefined } from '../../../shared/src/util/types'
+import { getViewsForContainer } from '../../../shared/src/api/client/services/viewService'
+import { ViewContent } from '../views/ViewContent'
 
 const TreeEntry: React.FunctionComponent<{
     isDir: boolean
@@ -191,6 +194,19 @@ export const TreePage: React.FunctionComponent<Props> = ({
         )
     )
 
+    const { services } = props.extensionsController
+    const views = useObservable(
+        useMemo(
+            () =>
+                getViewsForContainer(
+                    ContributableViewContainer.Directory,
+                    { workspace: services.workspace.roots.value[0] },
+                    services.view
+                ).pipe(map(views => views.filter(isDefined))),
+            [services.view, services.workspace.roots.value]
+        )
+    )
+
     const getPageTitle = (): string => {
         const repoStr = displayRepoName(repoName)
         if (filePath) {
@@ -293,6 +309,39 @@ export const TreePage: React.FunctionComponent<Props> = ({
                             </h2>
                         </header>
                     )}
+                    <div className="tree-page__section d-flex">
+                        {views === undefined ? (
+                            <div className="card flex-grow-1">
+                                <div className="card-body d-flex flex-column align-items-center">
+                                    <div>
+                                        <LoadingSpinner className="icon-inline" />
+                                    </div>
+                                    <div>Loading code insights</div>
+                                </div>
+                            </div>
+                        ) : (
+                            views.map((view, i) => (
+                                <div key={i} className="card flex-grow-1">
+                                    <div className="card-body">
+                                        {isErrorLike(view) ? (
+                                            <ErrorAlert error={view} history={props.history} />
+                                        ) : (
+                                            <>
+                                                <h3>{view.title}</h3>
+                                                <ViewContent
+                                                    {...props}
+                                                    viewContent={view.content}
+                                                    settingsCascade={settingsCascade}
+                                                    caseSensitive={caseSensitive}
+                                                    patternType={patternType}
+                                                />{' '}
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
                     <TreeEntriesSection
                         title="Files and directories"
                         parentPath={filePath}
