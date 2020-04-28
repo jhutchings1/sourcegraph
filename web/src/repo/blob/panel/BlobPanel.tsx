@@ -23,6 +23,7 @@ import { RepoHeaderContributionsLifecycleProps } from '../../RepoHeader'
 import { RepoRevSidebarCommits } from '../../RepoRevSidebarCommits'
 import { DiscussionsTree } from '../discussions/DiscussionsTree'
 import { ThemeProps } from '../../../../../shared/src/theme'
+
 interface Props
     extends AbsoluteRepoFile,
         Partial<UIPositionSpec>,
@@ -97,7 +98,7 @@ export class BlobPanel extends React.PureComponent<Props> {
             registrationOptions: { id, container: ContributableViewContainer.Panel },
             provider: from(this.props.extensionsController.services.editor.activeEditorUpdates).pipe(
                 map(activeEditor =>
-                    activeEditor
+                    activeEditor && activeEditor.type === 'CodeEditor'
                         ? {
                               ...activeEditor,
                               model: this.props.extensionsController.services.model.getPartialModel(
